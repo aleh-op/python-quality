@@ -1,0 +1,81 @@
+# python-quality — the canonical ruff baseline.
+#
+# Copied into a consumer as ruff.base.toml by pq/sync-config. The consumer's
+# pyproject.toml extends it:
+#
+#   [tool.ruff]
+#   extend = "ruff.base.toml"
+#
+# and layers local settings with `lint.extend-select` / `lint.ignore` /
+# `lint.per-file-ignores` ONLY. A consumer `lint.select` REPLACES this whole
+# selection rather than adding to it (verified, ruff 0.17.1), which is a gate
+# over the consumer's list pretending to be a gate over this one.
+# pq/config-check reports it as ruff-select-override.
+#
+# Every selection and every ignore carries its reason. A rule nobody can
+# justify is a rule nobody should have to satisfy.
+
+line-length = 100
+# No target-version: ruff infers it from the consumer's requires-python, which
+# is the one place that number should live.
+extend-exclude = [".gate", "**/*_pb2.py", "**/*_pb2_grpc.py", "**/migrations"]
+
+[format]
+docstring-code-format = true
+
+[lint]
+select = [
+  "E", "W",  # pycodestyle — the parts the formatter does not already settle
+  "F",       # pyflakes — undefined names, unused imports/variables
+  "I",       # import order — isort, without isort
+  "UP",      # pyupgrade — syntax the floor Python makes obsolete
+  "B",       # bugbear — mutable defaults, loop-variable capture, bare raise
+  "SIM",     # simplify
+  "RUF",     # ruff's own — mutable class defaults, ambiguous unicode, unused noqa
+  "S",       # bandit port — so there is no bandit
+  "BLE",     # blind `except Exception`
+  "C90",     # mccabe — complexity lives in the linter, not a second tool
+  "PL",      # pylint port — too-many-branches/args/statements, magic values
+  "ERA",     # commented-out code. Owns the rule rust-quality had to write in awk
+  "T20",     # print / pprint — logging or a CLI's own output layer
+  "PTH",     # pathlib over os.path
+  "RET",     # return consistency
+  "ARG",     # unused arguments
+  "PT",      # pytest style — raises() without match, fixture hygiene
+  "TID",     # banned / relative imports
+  "N",       # pep8 naming
+]
+ignore = [
+  "E501",     # line length is the formatter's job; a long string it cannot split is not a defect
+  "PLR2004",  # magic-value-comparison: fires on every `== 200` and `len(x) == 2`
+  "S603",     # subprocess without shell: fires on EVERY subprocess call, S602/S604 catch the shell case
+  "S607",     # partial executable path: `["git", ...]` is the norm for CLI tools, not a defect
+  "RET504",   # assign-then-return: often the clearer form for a debugger breakpoint
+  "PLC0415",  # import-outside-top-level: lazy imports for startup time and optional deps are deliberate
+  "ARG002",   # unused-method-argument: an override must match its base's signature. Measured: every
+              # autolab hit was a plugin implementing an interface, none was a defect
+]
+
+[lint.mccabe]
+# Same number the siblings cap cognitive complexity at (Biome, clippy).
+max-complexity = 15
+
+[lint.pylint]
+max-args = 6
+max-branches = 15
+max-statements = 60
+max-returns = 8
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[lint.per-file-ignores]
+# Tests assert, use literals, print when they debug, and take fixtures as
+# arguments — so argument counts mean nothing there.
+"**/tests/**" = ["S101", "S105", "S106", "PLR2004", "PLR0913", "PLR0917", "T20", "ARG"]
+"**/test_*.py" = ["S101", "S105", "S106", "PLR2004", "PLR0913", "PLR0917", "T20", "ARG"]
+"**/conftest.py" = ["S101", "PLR0913", "PLR0917", "ARG"]
+# A CLI's output layer is print.
+"scripts/**" = ["T20"]
+"**/cli.py" = ["T20"]
+"**/__main__.py" = ["T20"]

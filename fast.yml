@@ -1,0 +1,35 @@
+description: >-
+  Fast pre-commit gate — uv.lock drift, ruff format and check over staged
+  files, pyrefly, ai-lint over staged files, soft caps. No test suite, no
+  network.
+
+props:
+  dir:
+    type: string
+    default: "."
+    description: >-
+      Directory holding the pyproject.toml to gate, relative to where provision
+      is invoked. A repo whose projects are not one uv workspace passes each in
+      turn; making them a workspace is that repo's business, not the gate's.
+  cap_loc:
+    type: string
+    default: "500"
+    description: God-file soft cap, in code lines (informational).
+  ruff_args:
+    type: string
+    default: ""
+    description: Extra flags appended to `ruff check`.
+  pyrefly_args:
+    type: string
+    default: ""
+    description: Extra flags appended to `pyrefly check`.
+
+steps:
+  - name: fast gate
+    # `cd` before the assignments — see pq/ci for why the other order loses them.
+    shell: >-
+      cd "{{ props.dir }}" &&
+      CAP_LOC="{{ props.cap_loc }}"
+      RUFF_ARGS="{{ props.ruff_args }}" PYREFLY_ARGS="{{ props.pyrefly_args }}"
+      bash "{{ component_dir }}/scripts/gate.sh" fast
+    changed_when: false

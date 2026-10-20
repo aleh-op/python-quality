@@ -1,0 +1,47 @@
+# python-quality — the canonical pyproject.toml block.
+#
+# pyproject.toml has no include mechanism: neither uv nor ruff nor pyrefly can
+# merge a second manifest into it. So this cannot be copied in. pq/sync-config
+# prints it; merge it into your pyproject.toml by hand. pq/config-check and
+# pq/ci's supply-chain step enforce the parts marked [gate].
+#
+# ruff.base.toml and pyrefly.base.toml, by contrast, ARE merged natively and
+# are copied in next to this file.
+
+[project]
+requires-python = ">=3.12"
+
+# [gate] The gate runs these from the project's own environment, at the
+# versions uv.lock pins — the same ones your editor and CI run. Floors, not
+# pins: the lockfile is the pin.
+[dependency-groups]
+dev = [
+    "pyrefly>=1.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[tool.uv]
+# [gate] Supply-chain cooldown. Refuses any version published in the last
+# 3 days. Every 2026 PyPI compromise (LiteLLM, telnyx, mistralai, ...) was a
+# fresh malicious release of a legitimate package, pulled within hours to days;
+# an advisory database knows nothing about one in that window. A RELATIVE
+# duration: uv.lock records the span (`exclude-newer-span = "P3D"`), not a
+# date, so the lock does not go stale as the cutoff moves.
+exclude-newer = "3 days"
+
+# [gate] Extend, never `select`: a consumer `lint.select` REPLACES the base
+# selection. Add with `lint.extend-select`, remove with `lint.ignore`, and
+# write the reason next to every ignore.
+[tool.ruff]
+extend = "ruff.base.toml"
+
+# [gate] Extend, and never set `preset` here.
+[tool.pyrefly]
+extends = "pyrefly.base.toml"
+
+# Not gated, recommended: a typo'd marker or config key fails loudly, and an
+# xfail that starts passing is reported rather than silently kept.
+[tool.pytest.ini_options]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
+xfail_strict = true

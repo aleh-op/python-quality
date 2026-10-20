@@ -1,0 +1,31 @@
+description: >-
+  Every finding as JSONL for agents (.gate/findings.jsonl) — ruff, pyrefly,
+  ai-lint, soft caps, config drift, supply-chain posture, pip-audit. A pure
+  producer: never re-gates, never aborts. Enforcement stays with pq/ci.
+
+props:
+  dir:
+    type: string
+    default: "."
+    description: Directory holding the pyproject.toml to collect from.
+  cap_loc:
+    type: string
+    default: "500"
+    description: God-file soft cap in code lines.
+  audit:
+    type: string
+    default: "1"
+    description: '"0" skips pip-audit, the one network step.'
+  out:
+    type: string
+    default: ".gate/findings.jsonl"
+    description: Destination JSONL artifact (gitignore it). Relative to `dir`.
+
+steps:
+  - name: collect findings
+    shell: >-
+      cd "{{ props.dir }}" &&
+      CAP_LOC="{{ props.cap_loc }}" PQ_AUDIT="{{ props.audit }}"
+      bash "{{ component_dir }}/scripts/findings.sh" "{{ props.out }}"
+    changed_when: false
+    timeout: 30m

@@ -1,0 +1,16 @@
+description: >-
+  Assert the consumer did not quietly weaken the shared config — ruff not
+  extending the base or overriding its `select`, a baseline rule dropped,
+  pyrefly not extending the base or overriding its preset, a stale base copy,
+  a gate tool missing from the dev group.
+
+props:
+  dir:
+    type: string
+    default: "."
+    description: Directory holding the pyproject.toml to check.
+
+steps:
+  - name: config drift
+    shell: cd "{{ props.dir }}" && bash "{{ component_dir }}/scripts/config-check.sh"
+    changed_when: false

@@ -1,0 +1,50 @@
+description: >-
+  Copy the shared config into the consumer repo — ruff.base.toml and
+  pyrefly.base.toml — then print the pyproject.toml block, which nothing in
+  the Python toolchain gives us a way to copy.
+
+props:
+  dir:
+    type: string
+    default: "."
+    description: >-
+      Directory holding the pyproject.toml to configure, relative to where
+      provision is invoked. A repo whose projects are not one uv workspace
+      runs this once per project.
+
+# A `file` step's `src` resolves against the file that names it, so
+# `{{ component_dir }}` is what reaches this checkout's own copies. `path` is
+# not resolved: a relative one is relative to the directory provision was
+# invoked from, which is the consumer repo. Read from here, write over there.
+#
+# No `force`: `file` compares bytes and reports `ok` when they already match,
+# so re-running this is a no-op that says so — and re-running it after a bump
+# is what clears config-check's `base-copy-stale`.
+#
+# Both files are OURS; a consumer has no reason to hand-edit them. Its
+# pyproject.toml extends them and layers local settings on top. ruff and
+# pyrefly both merge natively — verified — so the baseline stays the source of
+# truth rather than being forked on copy.
+steps:
+  - name: ruff.base.toml
+    file:
+      path: "{{ props.dir }}/ruff.base.toml"
+      state: file
+      src: "{{ component_dir }}/ruff.base.toml"
+
+  - name: pyrefly.base.toml
+    file:
+      path: "{{ props.dir }}/pyrefly.base.toml"
+      state: file
+      src: "{{ component_dir }}/pyrefly.base.toml"
+
+  # pyproject.toml has no include mechanism, so this is the one thing that
+  # cannot be a file copy. Print it; the consumer merges; config-check enforces.
+  - name: print the pyproject.toml block
+    shell: |
+      echo "── merge into {{ props.dir }}/pyproject.toml ──"
+      cat "{{ component_dir }}/pyproject-block.toml"
+      echo
+      echo "── then: uv lock && uv sync   (the dev group pins the gate's tools)"
+      echo "pq/config-check enforces the [gate] parts; pq/ci reports the cooldown."
+    changed_when: false

@@ -1,0 +1,21 @@
+description: >-
+  Sync the consumer's environment from uv.lock (dev group included, nothing
+  removed), then verify ruff, pyrefly and pytest resolve offline.
+
+props:
+  dir:
+    type: string
+    default: "."
+    description: Directory holding the pyproject.toml, relative to the invocation dir.
+
+steps:
+  # Nothing is installed globally on purpose: the tools are dev dependencies
+  # pinned by the consumer's own lockfile, and a global copy would mean the
+  # gate runs a different version than CI does.
+  - name: install
+    shell: cd "{{ props.dir }}" && bash "{{ component_dir }}/scripts/tools.sh" install
+  # The install step changes real state and cannot say in advance what it will
+  # do; `check` only asks, so its exit code is its whole contract.
+  - name: verify
+    shell: cd "{{ props.dir }}" && bash "{{ component_dir }}/scripts/tools.sh" check
+    changed_when: false

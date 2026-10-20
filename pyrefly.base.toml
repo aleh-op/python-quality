@@ -1,0 +1,32 @@
+# python-quality — the canonical pyrefly baseline.
+#
+# Copied into a consumer as pyrefly.base.toml by pq/sync-config. The consumer's
+# pyproject.toml extends it:
+#
+#   [tool.pyrefly]
+#   extends = "pyrefly.base.toml"
+#
+# and keeps its own project-includes / search-path there. The consumer must NOT
+# set `preset`: a consumer `preset = "basic"` over this file silenced even
+# `bad-assignment`, exit 0 (verified, pyrefly 1.4.0). pq/config-check reports it.
+#
+# `default`, not `strict`, and the choice was measured, not guessed (2026-10-21):
+#
+#   autolab (163 files): default 0, strict 144 — 74 of them missing-override-
+#                        decorator, 40 implicit-any-lambda
+#   money   (38 files):  default 41, strict 344
+#
+# strict's bulk is ceremony (`@override` on every subclass method, annotated
+# lambdas). What is worth paying for is the noImplicitAny analog: an
+# unannotated parameter or a bare `list` is where Any enters, and once it is
+# in, every check downstream of it is decoration. Those two are promoted.
+#
+# The gate runs `pyrefly check --min-severity warn`. pyrefly's default display
+# floor is `error`, and warnings below it are both hidden AND exit 0 — a kind
+# set to "warn" here would gate nothing without the flag (verified).
+
+preset = "default"
+
+[errors]
+implicit-any-parameter = "error"
+implicit-any-type-argument = "error"
