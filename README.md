@@ -2,7 +2,7 @@
 
 Shared Python quality gate for the fleet — the canonical ruff and pyrefly
 baselines, a two-mode gate, the supply-chain posture check, and the consumer
-guide. Consumed by [provision](https://github.com/alehatsman/provision). The
+guide. Consumed by [provision](https://github.com/aleh-op/provision). The
 Python sibling of `rust-quality`, `go-quality` and `ts-quality`.
 
 - [docs/STACK.md](docs/STACK.md) — what the gate runs and what it deliberately
@@ -39,6 +39,10 @@ scripts/
 Same shape as every sibling: a pinned checkout in the consumer's own plan,
 then `use:` by path. Nothing fetches at gate time.
 
+`tasks/tools.yml` is the exception: provision resolves a `use:` target when
+it parses the plan, before the `git` step has cloned it, so this one file
+calls `scripts/tools.sh` directly.
+
 ```yaml
 # tasks/tools.yml
 steps:
@@ -48,11 +52,14 @@ steps:
       pq_dir: "{{ home }}/.cache/provision/tools/python-quality"
   - name: "python-quality at {{ pq_ref }}"
     git:
-      repo: https://github.com/alehatsman/python-quality.git
+      repo: https://github.com/aleh-op/python-quality.git
       dest: "{{ pq_dir }}"
       ref: "{{ pq_ref }}"
-  - name: Sync the gate's tools
-    use: ~/.cache/provision/tools/python-quality/tools.yml
+  - name: install (uv sync)
+    shell: bash "{{ pq_dir }}/scripts/tools.sh" install
+  - name: verify
+    shell: bash "{{ pq_dir }}/scripts/tools.sh" check
+    changed_when: false
 ```
 
 ```yaml
